@@ -4,8 +4,7 @@ from NTPClient import NTPClient
 from TimeUtiltys import TimeUtiltys 
 from CheckUtiltys import CheckUtiltys
 from datetime import datetime,date,timedelta
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
+from playwright.sync_api import sync_playwright
 from tkinter import messagebox,Tk
 from sys import exit
 
@@ -87,37 +86,62 @@ def main():
 
     ntpClient = NTPClient("ntp.nict.jp")
     
-    #chromeのバージョンに合せたドライバーをインストールする
-    #まぁまぁ重いから先にやっておく
-    driverPath = ChromeDriverManager().install()
-    
-    #シークレットブラウザ/画面サイズ最大/画像を読み込まない
-    options = webdriver.ChromeOptions()
-    options.add_argument('--incognito') 
-    options.add_argument('--start-maximized')
-    options.add_argument('--blink-settings=imagesEnabled=false')
-    options.add_argument('--lang=ja')
-    options.add_argument("--proxy-server='direct://'")
-    options.add_argument("--proxy-bypass-list=*")
-    #高速版の場合はヘッダーレス
-    if headless =="y":
-        options.add_argument("--headless")
-
     #ログイン処理実行時刻まで待機
     TimeUtiltys.MakeSleep(TimeUtiltys.FindTheTimeDifference(loginTime,ntpClient))
 
-    driver = webdriver.Chrome(driverPath,chrome_options=options)
-   
-    #指定したdriverに対して最大で10秒間待つように設定する
-    driver.implicitly_wait(10)
-   
-    #ログイン処理
-    OperateAmazon.Login(driver,login,password,headless)
-    
-    #購入処理実行時刻まで待機
-    TimeUtiltys.MakeSleep(TimeUtiltys.FindTheTimeDifference(purchaseTime,ntpClient))
+    # Playwright でブラウザを起動
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=(headless == "y"),
+            args=[
+                '--lang=ja-JP',
+                '--no-first-run',
+                '--disable-blink-features=AutomationControlled',
+                '--font-render-hinting=none',
+                '--disable-font-subpixel-positioning',
+                '--force-device-scale-factor=1'
+            ]
+        )
+        
+        # シークレットモードでコンテキスト作成
+        context = browser.new_context(
+            viewport={'width': 1920, 'height': 1080},
+            locale='ja-JP',
+            timezone_id='Asia/Tokyo',
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            extra_http_headers={
+                'Accept-Language': 'ja-JP,ja;q=0.9,en;q=0.8',
+                'Accept-Charset': 'utf-8'
+            }
+        )
+        
+        page = context.new_page()
+        
+        # ページタイムアウト設定
+        page.set_default_timeout(10000)  # 10秒
+        
+        # 日本語エンコーディング確保のためのJavaScript実行
+        page.add_init_script("""
+            Object.defineProperty(navigator, 'language', {
+                get: function() { return 'ja-JP'; }
+            });
+            Object.defineProperty(navigator, 'languages', {
+                get: function() { return ['ja-JP', 'ja', 'en']; }
+            });
+        """)
+       
+        try:
+            #ログイン処理
+            OperateAmazon.Login(page,login,password,headless)
+            
+            #購入処理実行時刻まで待機
+            TimeUtiltys.MakeSleep(TimeUtiltys.FindTheTimeDifference(purchaseTime,ntpClient))
 
-    OperateAmazon.Purchase(driver,purchaseGoodsUrl,checkColor,checkSize,quantity)
+            OperateAmazon.Purchase(page,purchaseGoodsUrl,checkColor,checkSize,quantity)
+            
+        finally:
+            # ブラウザを閉じる
+            browser.close()
 
     while True:
         finish = input("終了するにはEnterキーを押してください")

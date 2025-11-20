@@ -1,2 +1,21 @@
 __pycache__/
 chromedriver/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+.env
+
+# uv lock file (commit this)
+# uv.lock
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db

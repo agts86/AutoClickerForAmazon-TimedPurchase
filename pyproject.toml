@@ -1,0 +1,10 @@
+[project]
+name = "autoclickerforamazon-timedpurchase"
+version = "0.1.0"
+description = "Amazon自動購入ツール - 指定時刻にAmazonで商品を自動購入するプログラム"
+requires-python = ">=3.8"
+dependencies = [
+    "playwright",
+    "ntplib",
+    "stdiomask",
+]

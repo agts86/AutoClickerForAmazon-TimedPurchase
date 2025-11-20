@@ -6,7 +6,7 @@ class CheckUtiltys():
     #mail : メールアドレス
     #return : True(ok)/False(ng)
     def CheckMailAddress(mail:str):
-        return re.match("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", mail)
+        return re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", mail)
     
     #半角英数字記号かどうか確認する
     #target : 対象の文字列
@@ -19,7 +19,7 @@ class CheckUtiltys():
     #fqdn : 指定のFQDN
     #return : True(ok)/False(ng)  
     def CheckURL(target:str,fqdn:str):
-        return re.match("https?://" + fqdn + "+", target)
+        return re.match(r"https?://" + fqdn + r"+", target)
     
     #電話番号かどうか確認する
     #phoneNumber : 電話番号
